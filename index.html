@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Montgomery County Safety Analysis</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- <link rel="icon" href="images/city-logo.jpg" type="image/x-icon" /> -->
+
+  <!-- libre franklin font styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet" />
+
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+
+  <!-- Turf.js -->
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+
+  <!-- PapaParse js for csv data -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Add styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <!-- Main container with side-panel and map -->
+  <div id="container">
+    <!-- Map container -->
+    <div id="map">
+      <div class="time-slider">
+        <label class="slider-label">Select Time</label><br />
+        <input type="range" class="slider-range" min="0" step="1" />
+      </div>
+
+      <!-- zoom indicator for user interaction -->
+      <div id="zoom-indicator">Zoom: 0<br />Bearing: 0°<br />Pitch: 0°</div>
+
+      <!-- heatmap legend showing density values -->
+      <div id="heatmap-legend">
+        <div class="legend-title">Crash Density</div>
+        <div class="heat-gradient-bar"></div>
+        <div class="heat-gradient-labels">
+          <span>Low</span>
+          <span>Medium</span>
+          <span>High</span>
+        </div>
+      </div>
+    </div>
+    <!-- Side panel: header, legend, and controls -->
+    <div id="side-panel">
+      <h1>Montgomery County Highway Safety Analysis</h1>
+
+      <p>
+        This map was developed to identify possible roadways of concern in
+        Montgomery County, Kentucky. The analysis was conducted using QGIS
+        3.34.2 and uses a combination spatial analyses. Crash data ranges from
+        January 2015 to December 2024, a full ten-year period. Interstate
+        crashes were omitted from this analysis.
+        <br /><br />
+        Use the below legend to toggle crashes by severity as well as the high
+        injury network.
+      </p>
+
+      <!-- Custom legend container -->
+      <div id="legend"></div>
+
+      <div id="collision-filter">
+        <label for="collision-dropdown">Filter crashes by Manner
+          of Collision
+        </label>
+        <select id="collision-dropdown"></select>
+      </div>
+
+      <div id="year-filter">
+        <label for="year-dropdown">Filter crashes by Year</label>
+        <select id="year-dropdown"></select>
+      </div>
+
+      <p>
+        After attributing crashes to their respective roadways, networks where
+        crashes resulting in a death or serious injury can be identified via
+        database management systems The result is the below table, presented
+        on this map as the high injury network. While this is not a precise
+        indicator of problematic corridors, it can focus efforts and attention
+        for potential highway safety improvements within Montgomery County.
+        <br /><br />
+        The below table indicates the statistics that were taken to develop
+        this high injury network. Two or greater number of fatal and suspected
+        serious injury crashes occuring on a network was identified as being a
+        high injury network. <br />Data analyzed using database management in
+        QGIS as well as linear referencing tools to overlay the table on
+        KYTC's spatial roadway datasets.
+      </p>
+
+      <div class="csv-table" id="table-HIN_MontgomeryCounty_KY" data-src="analysis/HIN_MontgomeryCounty_KY.csv"></div>
+
+      <p>
+        Additionally, crashes were summed up by roadway type, which the below
+        table showcases. The top roadway types with the most crasehes
+        occrurring on them are KY routes and US routes, with more than 68% of
+        all the ten-year period of crashes occuring on those two types alone.
+        While this seems alarming, it is important to consider that these are
+        the most travelled corridors in the county, and therefore more crashes
+        will occur on those routes due to the sheer number of people using
+        those routes daily.
+        <br />
+        It is still important to consider that there are additional reasons
+        why crashes occur on these roadways, outside of sheer number of
+        roadway users. Signaling, speed control, innovative intersections, and
+        additonal safety measures can significantly reduce traffic accidents
+        on these highways alone and should be considered.
+      </p>
+
+      <div class="csv-table" id="table-RouteTypeSummary" data-src="analysis/RouteTypeSummary.csv"></div>
+
+      <p>
+        Finally, a complete summary of this data can be found in the below
+        table, which is sorted from largest Total Crash numbers to the
+        smallest total crash numbers. Additionally, you can view statistics on
+        individual segments in the above interactive map.
+      </p>
+
+      <div class="csv-table" id="table-RT_UNIQUE_Summary" data-src="analysis/RT_UNIQUE_Summary.csv"></div>
+
+      <hr />
+
+      <div class="footer">
+        <a href="https://github.com/jfltx" target="_blank">James FL Thompson
+        </a>
+        | New Maps Plus | May, 2025
+        <br />
+        View my <a href="https://jfltx.github.io" target="_blank">portfolio</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Optional: Spinner for data loading -->
+  <div class="spinner-container">
+    <svg width="100" height="100" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .spinner_nOfF {
+          animation: spinner_qtyZ 2s cubic-bezier(0.36, 0.6, 0.31, 1) infinite;
+        }
+
+        .spinner_fVhf {
+          animation-delay: -0.5s;
+        }
+
+        .spinner_piVe {
+          animation-delay: -1s;
+        }
+
+        .spinner_MSNs {
+          animation-delay: -1.5s;
+        }
+
+        @keyframes spinner_qtyZ {
+          0% {
+            r: 0;
+          }
+
+          25% {
+            r: 3px;
+            cx: 4px;
+          }
+
+          50% {
+            r: 3px;
+            cx: 12px;
+          }
+
+          75% {
+            r: 3px;
+            cx: 20px;
+          }
+
+          100% {
+            r: 0;
+            cx: 20px;
+          }
+        }
+      </style>
+      <circle class="spinner_nOfF" cx="4" cy="12" r="3" />
+      <circle class="spinner_nOfF spinner_fVhf" cx="4" cy="12" r="3" />
+      <circle class="spinner_nOfF spinner_piVe" cx="4" cy="12" r="3" />
+      <circle class="spinner_nOfF spinner_MSNs" cx="4" cy="12" r="3" />
+    </svg>
+  </div>
+  <script>
+    // script loading csv data for crash statistics
+    function loadCSVtoTable(containerId, csvPath) {
+      fetch(csvPath)
+        .then((response) => response.text())
+        .then((csvText) => {
+          const rows = csvText
+            .trim()
+            .split("\n")
+            .map((r) => r.split(","));
+          const table = document.createElement("table");
+          table.className = "styled-csv-table";
+
+          rows.forEach((row, i) => {
+            const tr = document.createElement("tr");
+            row.forEach((cell) => {
+              const el = document.createElement(i === 0 ? "th" : "td");
+              el.textContent = cell;
+              tr.appendChild(el);
+            });
+            table.appendChild(tr);
+          });
+
+          const container = document.getElementById(containerId);
+          container.innerHTML = ""; // clear spinner or placeholder
+          container.appendChild(table);
+        })
+        .catch((err) => {
+          document.getElementById(containerId).innerText =
+            "Failed to load table.";
+          console.error(err);
+        });
+    }
+
+    function observeTables() {
+      const observer = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const container = entry.target;
+              const id = container.id;
+              const src = container.getAttribute("data-src");
+              loadCSVtoTable(id, src);
+              obs.unobserve(container);
+            }
+          });
+        },
+        {
+          root: null,
+          rootMargin: "0px",
+          threshold: 0.2,
+        }
+      );
+
+      document.querySelectorAll(".csv-table").forEach((el) => {
+        observer.observe(el);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const lazyTables = document.querySelectorAll(".csv-table");
+
+      const observer = new IntersectionObserver(
+        (entries, obs) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const div = entry.target;
+              const csvPath = div.dataset.src;
+              const id = div.id;
+              loadCSVtoTable(id, csvPath);
+              obs.unobserve(div); // only load once
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      lazyTables.forEach((el) => observer.observe(el));
+    });
+  </script>
+  <!-- D3 library  -->
+  <script src="https://d3js.org/d3.v7.js"></script>
+
+  <!-- Load external JavaScript app from the JS folder -->
+  <script src="js/app.js"></script>
+</body>
+
+</html>
